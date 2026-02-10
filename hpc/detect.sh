@@ -8,9 +8,9 @@
 # !DESCRIPTION:
 #   Identify the HPC system and set global environment flags accordingly.
 #   The function inspects uname(1) and the short hostname to recognize
-#   known platforms (Cray XC50 and EGEON). It sets a consistent set of
-#   exported variables used by downstream scripts (compiler wrapper,
-#   locale, convenience boolean flags).
+#   known platforms (Cray XC50, EGEON and JACI (HPE System) ). It sets a 
+#   consistent set of exported variables used by downstream scripts 
+#   (compiler wrapper, locale, convenience boolean flags).
 #
 # !USAGE:
 #   detect_hpc_system -v
@@ -19,7 +19,7 @@
 #   • Sources common flags via __parse_args__ (if available) to honor -v/--verbose.
 #   • Reads uname/hostname to infer platform (no external tools beyond coreutils).
 #   • Sets (exports):
-#       hpc_system, hpc_name, is_egeon, is_cray, WRAPPER, LC_ALL, LANG
+#       hpc_system, hpc_name, is_egeon, is_cray, is_jaci, WRAPPER, LC_ALL, LANG
 #   • Returns 0 on success; 1 on unknown machines.
 #
 # !ENVIRONMENT:
@@ -53,10 +53,11 @@ detect_hpc_system() {
     export is_egeon=false is_cray=false
     [[ "${hpc_name,,}" == "egeon" ]] && is_egeon=true
     [[ "${hpc_name,,}" == "xc50"  ]] && is_cray=true
+    [[ "${hpc_name,,}" == "jaci" ]] && is_jaci=true
     # Ensure locale defaults if missing
     export LC_ALL="${LC_ALL:-en_US.UTF-8}"
     export LANG="${LANG:-${LC_ALL}}"
-    _log_debug "detect_hpc_system: pre-set flags is_egeon=%s is_cray=%s" "$is_egeon" "$is_cray"
+    _log_debug "detect_hpc_system: pre-set flags is_egeon=%s is_cray=%s is_jaci=%s" "$is_egeon" "$is_cray" " "$is_jaci
     return 0
   fi
 
@@ -68,6 +69,7 @@ detect_hpc_system() {
   # --- Reset exported flags (single source of truth) ---
   export is_egeon=false
   export is_cray=false
+  export is_jaci=false
 
   # --- Helper to set env in one place ---
   _set_env() {
@@ -86,6 +88,14 @@ detect_hpc_system() {
   if printf '%s' "$sys_info" | grep -Eqi 'cray(_ari_s)?|xc50'; then
     _set_env "cray" "xc50" "ftn" "Detected: Cray XC50"
     export is_cray=true
+    return 0
+
+  # JACI (CPTEC/INPE) — detecção genérica
+  elif printf '%s' "$short_hostname" | grep -Eqi '^ian[0-9]+' \
+    || { [[ -d /p/projetos ]] && [[ -d /home2 ]]; }; then
+
+    _set_env "linux" "jaci" "mpif90" "Detected: JACI (HPE System)"
+    export is_jaci=true
     return 0
 
   # EGEON: match by uname string or known headnode label
