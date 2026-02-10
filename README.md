@@ -1,4 +1,6 @@
 # shell-hpc-utils
+![HPC](https://img.shields.io/badge/HPC-Supercomputador-blue)
+![CPTEC-INPE](https://img.shields.io/badge/CPTEC-INPE-brightgreen)
 
 A modular, production-grade collection of Bash helpers for HPC environments.
 
